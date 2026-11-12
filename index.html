@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAST CASH</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080912;--panel:#141626;--line:#34304e;--gold:#f2c45b;--blue:#4b8dff;--purple:#9b70ff;--muted:#a7a8bd}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#21153b 0,transparent 38%),var(--bg);color:#f8f7ff;font:15px system-ui,"Noto Sans Bengali",sans-serif;padding-bottom:88px}
+header{padding:18px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#0b0c18ee;backdrop-filter:blur(12px);z-index:5}
+.brand{font-size:23px;font-weight:900;letter-spacing:1px;background:linear-gradient(90deg,var(--gold),#fff,var(--blue));color:transparent;background-clip:text}
+main{max-width:760px;margin:18px auto;padding:0 14px}.card{background:linear-gradient(145deg,#191a2d,#111321);border:1px solid var(--line);border-radius:18px;padding:17px;margin:12px 0;box-shadow:0 10px 28px #0004}
+h1,h2,h3,p{margin-top:0}h2{font-size:19px}.muted,.hint{color:var(--muted);font-size:13px;line-height:1.55}
+input,select,button{font:inherit;width:100%;padding:12px 13px;border-radius:11px;border:1px solid #46435d;background:#0e1020;color:white;margin:6px 0}
+button{background:linear-gradient(100deg,var(--gold),#d99a35);color:#16101a;font-weight:800;border:0;cursor:pointer}
+button.secondary{background:linear-gradient(100deg,var(--blue),var(--purple));color:white}
+button.ghost{background:#22243a;color:#eee;border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:not-allowed}.hidden{display:none!important}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{padding:14px;border-radius:14px;background:#0e1020;border:1px solid var(--line)}.stat b{font-size:24px;color:var(--gold);display:block;margin-top:5px}
+.gold{color:var(--gold)}.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#101120f5;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding:7px 3px calc(7px + env(safe-area-inset-bottom));backdrop-filter:blur(12px)}
+nav button{background:transparent;color:#c7c7d6;margin:0;padding:7px 1px;border-radius:9px;font-size:11px;border:0}
+nav button.active{color:var(--gold);background:#28223b}
+.page{display:none}.page.active{display:block}.item{padding:12px 0;border-top:1px solid #34344a;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.tag{font-size:11px;border:1px solid #62568b;border-radius:99px;padding:3px 8px;color:#c7b6ff}
+.notice{border:1px solid #705c2b;background:#2b2415;color:#f3dca1;border-radius:12px;padding:11px;font-size:12px;line-height:1.5}
+#message{margin:10px 0;color:#ffcf78;font-size:13px;white-space:pre-wrap}
+@media(min-width:650px){nav{max-width:760px;left:50%;transform:translateX(-50%);border:1px solid var(--line);border-bottom:0;border-radius:16px 16px 0 0}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">✦ FAST CASH</div><div class="muted">Your rewards dashboard</div></div><button id="logout" class="ghost hidden" style="width:auto">লগআউট</button></header>
+<main>
+<div id="auth" class="card">
+  <h2 class="gold">স্বাগতম</h2><p class="muted">ইমেইল ও পাসওয়ার্ড দিয়ে প্রবেশ করুন অথবা নতুন অ্যাকাউন্ট খুলুন।</p>
+  <input id="email" type="email" placeholder="আপনার ইমেইল">
+  <input id="password" type="password" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)">
+  <label class="muted"><input id="showPass" type="checkbox" style="width:auto"> পাসওয়ার্ড দেখুন</label>
+  <input id="refCode" placeholder="Referral code (ঐচ্ছিক)">
+  <button id="loginBtn">LOGIN</button><button id="signupBtn" class="secondary">CREATE ACCOUNT</button>
+  <button id="resetBtn" class="ghost">পাসওয়ার্ড ভুলে গেছেন?</button>
+  <div id="authMsg" class="hint"></div>
+</div>
+
+<div id="app" class="hidden">
+<section id="home" class="page active">
+ <div class="card"><div class="muted">আপনার বর্তমান ব্যালেন্স</div><div style="font-size:38px;font-weight:900;color:var(--gold)">৳<span id="balance">0.00</span></div><div class="muted" id="welcome"></div></div>
+ <div class="grid">
+  <div class="stat"><span class="muted">মোট রেফার</span><b id="refCount">0</b></div>
+  <div class="stat"><span class="muted">উত্তোলনের আবেদন</span><b id="withdrawCount">0</b></div>
+ </div>
+ <div class="card"><h2 class="gold">FAST CASH</h2><p class="muted">Tasks, Ads, Referral ও Wallet ব্যবহার করতে নিচের মেনু নির্বাচন করুন।</p></div>
+</section>
+
+<section id="tasks" class="page"><div class="card"><h2 class="gold">Tasks</h2><div id="taskList" class="muted">কোনো কাজ নেই।</div></div><div class="card"><h3>আপনার জমা দেওয়া কাজ</h3><div id="myTasks" class="muted">এখনো কোনো জমা নেই।</div></div></section>
+
+<section id="ads" class="page"><div class="card"><h2 class="gold">Ads</h2><div class="notice">বিজ্ঞাপন নেটওয়ার্কের নিয়ম মেনে বিজ্ঞাপন দেখুন। বিজ্ঞাপনে ক্লিক করতে উৎসাহ দেওয়া, কৃত্রিম ভিউ তৈরি বা বিজ্ঞাপন দেখার বিনিময়ে পুরস্কার দেওয়া যাবে না যদি নেটওয়ার্ক তা স্পষ্টভাবে অনুমোদন না করে।</div><div id="adSlot" class="card" style="text-align:center">Monetag Ad Zone এখানে যুক্ত হবে<br><span class="muted">Admin Panel-এ Zone ID বসানোর পর বিজ্ঞাপন কোড যুক্ত করুন।</span></div></div></section>
+
+<section id="referral" class="page"><div class="card"><h2 class="gold">Referral</h2><p class="muted">আপনার আমন্ত্রণ কোড</p><input id="myRefCode" readonly><button id="copyCode" class="secondary">কোড কপি করুন</button><p class="muted">আপনার রেফার লিংক</p><input id="myRefLink" readonly><button id="copyLink">লিংক কপি করুন</button><div class="stat">মোট রেফার<b id="refPageCount">0</b></div><div id="refList" class="muted"></div><p class="hint">রেফার বোনাসের পরিমাণ Admin Settings-এ নির্ধারিত হবে।</p></div></section>
+
+<section id="wallet" class="page"><div class="card"><h2 class="gold">Wallet</h2><div class="stat">Available Balance<b>৳<span id="walletBalance">0.00</span></b></div><p class="muted">উত্তোলনের জন্য আপনার পেমেন্ট নম্বর দিন।</p><input id="payNumber" placeholder="bKash/Nagad/Rocket নম্বর"><div class="row"><select id="payMethod"><option>bKash</option><option>Nagad</option><option>Rocket</option></select><input id="withdrawAmount" type="number" min="1" placeholder="টাকার পরিমাণ"></div><button id="withdrawBtn">Withdraw Request</button><p id="walletMsg" class="hint"></p></div>
+<div class="card"><h3>Withdraw History</h3><div id="withdrawHistory" class="muted">কোনো হিস্টরি নেই।</div></div>
+<div class="card"><h3>Transaction History</h3><div id="ledgerHistory" class="muted">কোনো লেনদেন নেই।</div></div></section>
+
+<section id="profile" class="page"><div class="card"><h2 class="gold">My Profile</h2><p id="profileEmail"></p><p class="muted">Account ID</p><small id="profileId"></small></div></section>
+
+<section id="admin" class="page"><div class="card"><h2 class="gold">Admin Panel</h2><span class="tag">ADMIN ONLY</span><p class="muted">শুধু database-এ admin role দেওয়া অ্যাকাউন্ট এই অংশ দেখতে পাবে।</p>
+<h3>নতুন Task</h3><input id="newTaskTitle" placeholder="কাজের নাম"><input id="newTaskReward" type="number" min="1" placeholder="Reward (৳)"><button id="addTask">Task যোগ করুন</button>
+<h3>Pending Task Submissions</h3><div id="adminTasks" class="muted"></div>
+<h3>Pending Withdrawals</h3><div id="adminWithdrawals" class="muted"></div>
+<h3>Referral Bonus ও Minimum Withdraw</h3><div class="row"><input id="refBonusSetting" type="number" placeholder="Referral bonus"><input id="minWithdrawSetting" type="number" placeholder="Minimum withdraw"></div><button id="saveSettings" class="secondary">Settings Save</button>
+<h3>Monetag Zone ID</h3><input id="monetagZone" placeholder="Monetag Zone ID (পরে বসাবেন)"><p class="hint">Zone ID বসালেই বিজ্ঞাপন চালু হবে না; Monetag-এর অনুমোদিত script ও placement আলাদাভাবে যুক্ত করতে হবে।</p>
+</div></section>
+<div id="message"></div>
+</div>
+</main>
+<nav id="nav" class="hidden">
+<button data-page="home" class="active">⌂<br>Home</button><button data-page="tasks">☷<br>Tasks</button><button data-page="ads">▣<br>Ads</button><button data-page="referral">♧<br>Referral</button><button data-page="wallet">▤<br>Wallet</button><button data-page="profile">◉<br>Profile</button>
+</nav>
+<script>
+const SUPABASE_URL="https://svdpmucffsxthcqxtlro.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_oSq9VTHxAcKPi8GR_-qRpQ_T2kXcBl5";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+let user=null,profile=null,isAdmin=false,settings={};
+function msg(t){$("message").textContent=t}
+function money(n){return Number(n||0).toFixed(2)}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function showApp(on){$("auth").classList.toggle("hidden",on);$("app").classList.toggle("hidden",!on);$("nav").classList.toggle("hidden",!on);$("logout").classList.toggle("hidden",!on)}
+function page(name){document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(name).classList.add("active");document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===name))}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>page(b.dataset.page));
+$("showPass").onchange=()=> $("password").type=$("showPass").checked?"text":"password";
+$("loginBtn").onclick=async()=>{let email=$("email").value.trim(),password=$("password").value;let {error}=await db.auth.signInWithPassword({email,password});$("authMsg").textContent=error?error.message:"";if(!error)await boot()};
+$("signupBtn").onclick=async()=>{let email=$("email").value.trim(),password=$("password").value,code=$("refCode").value.trim();if(password.length<6){$("authMsg").textContent="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।";return}let {error}=await db.auth.signUp({email,password,options:{data:{referral_code:code||null}}});$("authMsg").textContent=error?error.message:"অ্যাকাউন্ট তৈরি হয়েছে। এখন লগইন করুন।"};
+$("resetBtn").onclick=async()=>{let email=$("email").value.trim();if(!email){$("authMsg").textContent="আগে ইমেইল লিখুন।";return}let {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});$("authMsg").textContent=error?error.message:"পাসওয়ার্ড রিসেট ইমেইল পাঠানো হয়েছে।"};
+$("logout").onclick=async()=>{await db.auth.signOut();location.reload()};
+async function boot(){let {data:{user:u}}=await db.auth.getUser();if(!u)return;user=u;let p=await db.from("profiles").select("*").eq("id",user.id).single();if(p.error){$("authMsg").textContent=p.error.message;return}profile=p.data;isAdmin=profile.role==="admin";showApp(true);$("welcome").textContent=user.email;$("profileEmail").textContent=user.email;$("profileId").textContent=user.id;if(isAdmin){let b=document.createElement("button");b.className="ghost";b.textContent="Admin Panel";b.onclick=()=>page("admin");$("profile").querySelector(".card").appendChild(b)}await refresh()}
+async function refresh(){
+ let p=await db.from("profiles").select("*").eq("id",user.id).single();if(p.data)profile=p.data;
+ $("balance").textContent=money(profile.points);$("walletBalance").textContent=money(profile.points);$("myRefCode").value=profile.referral_code||"";$("myRefLink").value=location.origin+location.pathname+"?ref="+encodeURIComponent(profile.referral_code||"");
+ let tasks=await db.from("tasks").select("*").eq("active",true).order("id",{ascending:false});
+ $("taskList").innerHTML=(tasks.data||[]).map(t=>`<div class="item"><div><b>${escapeHtml(t.title)}</b><div class="muted">Reward: ৳${money(t.reward_points)}</div></div><button onclick="submitTask(${t.id})" style="width:auto">Submit</button></div>`).join("")||"কোনো কাজ নেই।";
+ let mine=await db.from("task_submissions").select("id,status,created_at,tasks(title)").eq("user_id",user.id).order("id",{ascending:false});
+ $("myTasks").innerHTML=(mine.data||[]).map(x=>`<div class="item">${escapeHtml(x.tasks?.title||"Task")} <span class="tag">${escapeHtml(x.status)}</span></div>`).join("")||"এখনো কোনো জমা নেই।";
+ let w=await db.from("redemptions").select("*").eq("user_id",user.id).order("id",{ascending:false});
+ $("withdrawHistory").innerHTML=(w.data||[]).map(x=>`<div class="item"><span>৳${money(x.points)} • ${escapeHtml(x.method)}<br><small>${new Date(x.created_at).toLocaleString()}</small></span><span class="tag">${escapeHtml(x.status)}</span></div>`).join("")||"কোনো হিস্টরি নেই।";
+ let ledger=await db.from("transactions").select("*").eq("user_id",user.id).order("id",{ascending:false}).limit(30);
+ $("ledgerHistory").innerHTML=(ledger.data||[]).map(x=>`<div class="item">${escapeHtml(x.description)} <b class="gold">${x.amount>=0?"+":""}৳${money(x.amount)}</b></div>`).join("")||"কোনো লেনদেন নেই।";
+ let refs=await db.from("profiles").select("id,created_at").eq("referred_by",user.id);
+ $("refCount").textContent=(refs.data||[]).length;$("refPageCount").textContent=(refs.data||[]).length;
+ $("refList").innerHTML=(refs.data||[]).map(x=>`<div class="item">Referral joined • ${new Date(x.created_at).toLocaleDateString()}</div>`).join("")||"এখনো কেউ যোগ দেয়নি।";
+ $("withdrawCount").textContent=(w.data||[]).length;
+ if(isAdmin)await loadAdmin();
+}
+window.submitTask=async id=>{let {error}=await db.rpc("submit_task",{p_task_id:id});msg(error?error.message:"Task review-এর জন্য জমা হয়েছে।");await refresh()};
+$("copyCode").onclick=()=>navigator.clipboard.writeText($("myRefCode").value).then(()=>msg("Referral code copied"));
+$("copyLink").onclick=()=>navigator.clipboard.writeText($("myRefLink").value).then(()=>msg("Referral link copied"));
+$("withdrawBtn").onclick=async()=>{let amount=Number($("withdrawAmount").value),method=$("payMethod").value,number=$("payNumber").value.trim();if(!number){$("walletMsg").textContent="পেমেন্ট নম্বর লিখুন।";return}let {error}=await db.rpc("request_redemption",{p_points:amount,p_method:method,p_payment_number:number});$("walletMsg").textContent=error?error.message:"আবেদন জমা হয়েছে।";if(!error){$("withdrawAmount").value="";await refresh()}};
+$("addTask").onclick=async()=>{let title=$("newTaskTitle").value.trim(),reward=Number($("newTaskReward").value);let {error}=await db.from("tasks").insert({title,reward_points:reward});msg(error?error.message:"Task যোগ হয়েছে।");await refresh()};
+async function loadAdmin(){
+ let ts=await db.from("task_submissions").select("id,user_id,status,created_at,tasks(title)").eq("status","pending").order("id");
+ $("adminTasks").innerHTML=(ts.data||[]).map(x=>`<div class="item"><span>${escapeHtml(x.tasks?.title)}<br><small>${x.user_id}</small></span><span><button onclick="reviewTask(${x.id},true)" style="width:auto">Approve</button><button class="ghost" onclick="reviewTask(${x.id},false)" style="width:auto">Reject</button></span></div>`).join("")||"কোনো pending task নেই।";
+ let ws=await db.from("redemptions").select("*").eq("status","pending").order("id");
+ $("adminWithdrawals").innerHTML=(ws.data||[]).map(x=>`<div class="item"><span>৳${money(x.points)} • ${escapeHtml(x.method)}<br><small>${escapeHtml(x.payment_number||"")}</small></span><span><button onclick="reviewWithdrawal(${x.id},true)" style="width:auto">Paid</button><button class="ghost" onclick="reviewWithdrawal(${x.id},false)" style="width:auto">Reject</button></span></div>`).join("")||"কোনো pending withdrawal নেই।";
+ let s=await db.from("app_settings").select("*").eq("id",1).maybeSingle();settings=s.data||{};$("refBonusSetting").value=settings.referral_bonus??5;$("minWithdrawSetting").value=settings.min_withdraw??100;$("monetagZone").value=settings.monetag_zone_id||"";
+}
+window.reviewTask=async(id,approve)=>{let {error}=await db.rpc("review_task",{p_submission_id:id,p_approve:approve});msg(error?error.message:"Task updated");await refresh()};
+window.reviewWithdrawal=async(id,approve)=>{let {error}=await db.rpc("review_redemption",{p_redemption_id:id,p_approve:approve});msg(error?error.message:"Withdrawal updated");await refresh()};
+$("saveSettings").onclick=async()=>{let payload={id:1,referral_bonus:Number($("refBonusSetting").value),min_withdraw:Number($("minWithdrawSetting").value),monetag_zone_id:$("monetagZone").value.trim()};let {error}=await db.from("app_settings").upsert(payload);msg(error?error.message:"Settings saved");};
+db.auth.onAuthStateChange((event,session)=>{if(session?.user&&!user)setTimeout(boot,0)});
+(async()=>{let {data:{session}}=await db.auth.getSession();if(session)await boot();else showApp(false)})();
+</script>
+</body></html>
