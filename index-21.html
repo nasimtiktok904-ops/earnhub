@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EarnHub — আর্নিং প্ল্যাটফর্ম</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Noto Sans Bengali",sans-serif;color:#172033;background:#f4f7fb}
+    *{box-sizing:border-box}body{margin:0}header{background:#14213d;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    main{max-width:1050px;margin:24px auto;padding:0 16px}.card{background:white;border:1px solid #e5eaf2;border-radius:16px;padding:18px;margin:12px 0;box-shadow:0 4px 18px #16213e0a}
+    h1,h2,h3,p{margin-top:0}.muted{color:#667085;font-size:14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    input,button,select{font:inherit;padding:11px 12px;border-radius:10px;border:1px solid #d5dce8;width:100%;margin:5px 0}
+    button{background:#2463eb;color:white;border:0;font-weight:650;cursor:pointer}button.secondary{background:#eaf0ff;color:#1d4ed8}button.danger{background:#b42318}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}nav button{width:auto;padding:9px 13px}
+    .hidden{display:none!important}.balance{font-size:30px;font-weight:800;color:#176b45}.item{padding:12px 0;border-top:1px solid #edf0f5}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}.notice{background:#fff8e6;border:1px solid #f4d58d;padding:12px;border-radius:12px;color:#684d0b}
+    footer{text-align:center;color:#667085;padding:25px;font-size:13px}
+  </style>
+</head>
+<body>
+<header><div><strong>EarnHub</strong><div class="muted" style="color:#cbd5e1">কাজ • রেফার • গেম</div></div><button id="logoutBtn" class="secondary hidden" style="width:auto">লগআউট</button></header>
+<main>
+  <div class="notice">এটি একটি প্রাথমিক ডেমো। এখানে ব্যালেন্স হলো পরীক্ষামূলক পয়েন্ট; বাস্তব টাকা বা নিশ্চিত আয়ের প্রতিশ্রুতি নয়। পেমেন্ট চালুর আগে আইন, বয়স, অভিভাবকের অনুমতি ও পেমেন্ট-প্রোভাইডারের নিয়ম যাচাই করুন।</div>
+  <section id="auth" class="card">
+    <h2>অ্যাকাউন্ট তৈরি / লগইন</h2>
+    <input id="email" type="email" placeholder="ইমেইল">
+    <input id="password" type="password" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)">
+    <div class="grid"><button id="signupBtn">নতুন অ্যাকাউন্ট</button><button id="loginBtn" class="secondary">লগইন</button></div>
+    <p id="authMsg" class="muted"></p>
+  </section>
+  <section id="app" class="hidden">
+    <div class="grid">
+      <div class="card"><div class="muted">আমার পয়েন্ট ব্যালেন্স</div><div class="balance" id="balance">0</div><div class="muted">পয়েন্ট (টাকা নয়)</div></div>
+      <div class="card"><div class="muted">আমার রেফারেল কোড</div><h2 id="refCode">—</h2><button class="secondary" id="copyRef">কপি</button></div>
+      <div class="card"><div class="muted">অ্যাকাউন্ট</div><div id="userEmail"></div><div class="muted" id="roleLabel">সাধারণ ইউজার</div></div>
+    </div>
+    <nav>
+      <button data-tab="tasks">টাস্ক</button><button data-tab="game" class="secondary">গেম</button>
+      <button data-tab="withdraw" class="secondary">উত্তোলন</button><button data-tab="history" class="secondary">ইতিহাস</button>
+      <button data-tab="admin" id="adminTab" class="secondary hidden">অ্যাডমিন</button>
+    </nav>
+    <section id="tasks" class="card"><h2>উপলব্ধ টাস্ক</h2><div id="taskList" class="muted">লোড হচ্ছে…</div></section>
+    <section id="game" class="card hidden"><h2>ছোট কুইজ গেম</h2><p>এটি শুধু বিনোদনের জন্য; গেম খেলে ব্যালেন্স বাড়ে না।</p><p id="quizQuestion">বাংলাদেশের রাজধানী কোনটি?</p><div class="grid"><button class="secondary answer">ঢাকা</button><button class="secondary answer">চট্টগ্রাম</button><button class="secondary answer">খুলনা</button></div><p id="quizMsg" class="muted"></p></section>
+    <section id="withdraw" class="card hidden"><h2>পয়েন্ট রিডিম অনুরোধ</h2><p class="muted">এই ডেমোতে কোনো বাস্তব পেমেন্ট পাঠানো হয় না।</p>
+      <input id="withdrawAmount" type="number" min="1" placeholder="পয়েন্টের পরিমাণ">
+      <select id="paymentMethod"><option>bKash</option><option>Nagad</option><option>Rocket</option></select>
+      <button id="withdrawBtn">অনুরোধ জমা দিন</button><p id="withdrawMsg" class="muted"></p>
+    </section>
+    <section id="history" class="card hidden"><h2>আমার অনুরোধ</h2><div id="historyList" class="muted"></div></section>
+    <section id="admin" class="card hidden"><h2>অ্যাডমিন প্যানেল</h2><p class="muted">শুধু database-এ role=admin করা অ্যাকাউন্ট এটি দেখতে পারবে।</p>
+      <h3>নতুন টাস্ক যোগ</h3><input id="taskTitle" placeholder="টাস্কের নাম"><input id="taskReward" type="number" placeholder="পুরস্কার (পয়েন্ট)"><button id="addTaskBtn">টাস্ক যোগ করুন</button>
+      <h3 style="margin-top:24px">পেন্ডিং উত্তোলন অনুরোধ</h3><div id="adminWithdrawals" class="muted"></div><button class="secondary" id="refreshAdmin">রিফ্রেশ</button>
+    </section>
+  </section>
+</main>
+<footer>EarnHub starter • নিরাপদ ডেমো সংস্করণ</footer>
+<script>
+const SUPABASE_URL = "https://svdpmucffsxthcqxtlro.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_oSq9VTHxAcKPi8GR_-qRpQ_T2kXcBl5";
+const configured = !SUPABASE_URL.startsWith("YOUR_") && !SUPABASE_ANON_KEY.startsWith("YOUR_");
+const db = configured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const $ = id => document.getElementById(id);
+let currentUser = null, isAdmin = false;
+function msg(id,text){$(id).textContent=text}
+function showApp(show){$("auth").classList.toggle("hidden",show);$("app").classList.toggle("hidden",!show);$("logoutBtn").classList.toggle("hidden",!show)}
+async function authAction(kind){
+ if(!configured){msg("authMsg","প্রথমে index.html-এ Supabase URL ও publishable/anon key বসান।");return}
+ const email=$("email").value.trim(),password=$("password").value;
+ if(!email||password.length<6){msg("authMsg","সঠিক ইমেইল ও কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।");return}
+ const result=kind==="signup"?await db.auth.signUp({email,password}):await db.auth.signInWithPassword({email,password});
+ msg("authMsg",result.error?result.error.message:(kind==="signup"?"অ্যাকাউন্ট তৈরি হয়েছে। ইমেইল কনফার্ম করতে হতে পারে।":"লগইন সফল।"));
+ if(!result.error&&result.data.session) await loadUser();
+}
+$("signupBtn").onclick=()=>authAction("signup");$("loginBtn").onclick=()=>authAction("login");
+$("logoutBtn").onclick=async()=>{await db.auth.signOut();currentUser=null;showApp(false)};
+async function loadUser(){
+ const {data:{user}}=await db.auth.getUser();if(!user)return;currentUser=user;
+ const {data:profile,error}=await db.from("profiles").select("points,referral_code,role").eq("id",user.id).single();
+ if(error){msg("authMsg","প্রোফাইল লোড হয়নি: "+error.message);return}
+ isAdmin=profile.role==="admin";$("balance").textContent=profile.points;$("refCode").textContent=profile.referral_code;
+ $("userEmail").textContent=user.email;$("roleLabel").textContent=isAdmin?"অ্যাডমিন":"সাধারণ ইউজার";
+ $("adminTab").classList.toggle("hidden",!isAdmin);showApp(true);await loadTasks();await loadHistory();if(isAdmin)await loadAdmin();
+}
+async function loadTasks(){
+ const {data,error}=await db.from("tasks").select("id,title,reward_points").eq("active",true).order("created_at",{ascending:false});
+ if(error){$("taskList").textContent=error.message;return}
+ $("taskList").innerHTML="";
+ if(!data.length){$("taskList").textContent="এখনো কোনো টাস্ক নেই।";return}
+ data.forEach(t=>{const d=document.createElement("div");d.className="item row";const left=document.createElement("div");left.textContent=t.title+" • "+t.reward_points+" পয়েন্ট";const b=document.createElement("button");b.textContent="সম্পন্ন করেছি";b.style.width="auto";b.onclick=()=>submitTask(t.id,b);d.append(left,b);$("taskList").append(d)});
+}
+async function submitTask(taskId,button){
+ button.disabled=true;const {error}=await db.rpc("submit_task",{p_task_id:taskId});
+ if(error)alert(error.message);else alert("অনুরোধ জমা হয়েছে। অ্যাডমিন যাচাইয়ের পর পয়েন্ট যোগ হবে।");
+ await loadUser();
+}
+$("copyRef").onclick=()=>navigator.clipboard.writeText($("refCode").textContent).then(()=>alert("কপি হয়েছে"));
+$("withdrawBtn").onclick=async()=>{
+ const amount=Number($("withdrawAmount").value),method=$("paymentMethod").value;
+ if(!Number.isInteger(amount)||amount<1){msg("withdrawMsg","সঠিক পয়েন্টের পরিমাণ লিখুন।");return}
+ const {error}=await db.rpc("request_redemption",{p_points:amount,p_method:method});
+ msg("withdrawMsg",error?error.message:"অনুরোধ জমা হয়েছে। এটি বাস্তব পেমেন্ট নয়; অ্যাডমিন পর্যালোচনা করবে।");
+ await loadUser();await loadHistory();
+};
+async function loadHistory(){
+ const {data,error}=await db.from("redemptions").select("id,points,method,status,created_at").order("created_at",{ascending:false}).limit(30);
+ $("historyList").textContent=error?error.message:"";
+ (data||[]).forEach(x=>{const d=document.createElement("div");d.className="item";d.textContent=`${x.points} পয়েন্ট • ${x.method} • ${x.status} • ${new Date(x.created_at).toLocaleString("bn-BD")}`;$("historyList").append(d)});
+}
+async function loadAdmin(){
+ const {data,error}=await db.from("redemptions").select("id,user_id,points,method,status,created_at").eq("status","pending").order("created_at");
+ $("adminWithdrawals").textContent=error?error.message:"";
+ (data||[]).forEach(x=>{const d=document.createElement("div");d.className="item";d.textContent=`${x.points} পয়েন্ট • ${x.method} • ইউজার ${x.user_id.slice(0,8)}…`;
+ const b=document.createElement("button");b.textContent="অনুমোদন";b.style.width="auto";b.onclick=async()=>{const {error}=await db.rpc("review_redemption",{p_redemption_id:x.id,p_approve:true});alert(error?error.message:"অনুমোদিত");await loadAdmin()};d.append(b);$("adminWithdrawals").append(d)});
+}
+$("addTaskBtn").onclick=async()=>{
+ const title=$("taskTitle").value.trim(),reward=Number($("taskReward").value);
+ if(!title||!Number.isInteger(reward)||reward<1)return alert("টাস্কের নাম ও পয়েন্ট দিন");
+ const {error}=await db.from("tasks").insert({title,reward_points:reward});
+ alert(error?error.message:"টাস্ক যোগ হয়েছে");$("taskTitle").value="";$("taskReward").value="";await loadTasks();
+};
+$("refreshAdmin").onclick=loadAdmin;
+document.querySelectorAll("nav button[data-tab]").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("main section[id]").forEach(s=>{if(["tasks","game","withdraw","history","admin"].includes(s.id))s.classList.add("hidden")});
+ $(b.dataset.tab).classList.remove("hidden");
+ document.querySelectorAll("nav button").forEach(x=>x.classList.add("secondary"));b.classList.remove("secondary");
+});
+document.querySelectorAll(".answer").forEach(b=>b.onclick=()=>msg("quizMsg",b.textContent==="ঢাকা"?"সঠিক উত্তর! 🎉":"আবার চেষ্টা করো।"));
+if(configured){db.auth.getSession().then(({data})=>{if(data.session)loadUser()});db.auth.onAuthStateChange((_event,session)=>{if(session)loadUser()})}
+else msg("authMsg","সাইট চালাতে Supabase সেটআপ প্রয়োজন। README.md দেখুন।");
+</script>
+</body></html>
